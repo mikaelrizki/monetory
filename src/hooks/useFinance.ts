@@ -3,69 +3,59 @@
 import { useState, useEffect } from 'react';
 import { Transaction, Budget } from '../types';
 
-const STORAGE_KEY_TRANSACTIONS = 'monetory_transactions';
-const STORAGE_KEY_BUDGETS = 'monetory_budgets';
-
-const INITIAL_TRANSACTIONS: Transaction[] = [
+const INITIAL_TRANSACTIONS = [
   {
-    id: '1',
     type: 'income',
     amount: 12500000,
     category: 'Gaji',
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days ago
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     note: 'Gaji Bulanan Utama'
   },
   {
-    id: '2',
     type: 'expense',
     amount: 150000,
     category: 'Makanan & Minuman',
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 day ago
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     note: 'Makan siang Nasi Padang'
   },
   {
-    id: '3',
     type: 'expense',
     amount: 45000,
     category: 'Transportasi',
-    date: new Date().toISOString().split('T')[0], // Today
+    date: new Date().toISOString().split('T')[0],
     note: 'Ojek online ke kantor'
   },
   {
-    id: '4',
     type: 'expense',
     amount: 650000,
     category: 'Belanja',
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     note: 'Beli sepatu olahraga baru'
   },
   {
-    id: '5',
     type: 'expense',
     amount: 320000,
     category: 'Tagihan & Utilitas',
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 5 days ago
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     note: 'Tagihan Wi-Fi rumah'
   },
   {
-    id: '6',
     type: 'income',
     amount: 1800000,
     category: 'Sampingan',
-    date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 days ago
+    date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     note: 'Desain logo freelance'
   },
   {
-    id: '7',
     type: 'expense',
     amount: 120000,
     category: 'Hiburan & Rekreasi',
-    date: new Date().toISOString().split('T')[0], // Today
+    date: new Date().toISOString().split('T')[0],
     note: 'Tiket bioskop & popcorn'
   }
 ];
 
-const INITIAL_BUDGETS: Budget[] = [
+const INITIAL_BUDGETS = [
   { category: 'Makanan & Minuman', limit: 2000000 },
   { category: 'Transportasi', limit: 800000 },
   { category: 'Belanja', limit: 1500000 },
@@ -77,85 +67,167 @@ export function useFinance() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load data from LocalStorage on mount
+  // Load database entries on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedTx = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-      const storedBudgets = localStorage.getItem(STORAGE_KEY_BUDGETS);
+    async function loadData() {
+      try {
+        const [txRes, budgetRes] = await Promise.all([
+          fetch('/api/transactions'),
+          fetch('/api/budgets')
+        ]);
 
-      if (storedTx) {
-        setTransactions(JSON.parse(storedTx));
-      } else {
-        setTransactions(INITIAL_TRANSACTIONS);
-        localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(INITIAL_TRANSACTIONS));
+        if (!txRes.ok || !budgetRes.ok) {
+          throw new Error('Gagal menyinkronkan data dengan database.');
+        }
+
+        const txData = await txRes.json();
+        const budgetData = await budgetRes.json();
+
+        // Database seeding logic: if database is completely empty, populate it with demo values
+        if (txData.length === 0 && budgetData.length === 0) {
+          console.log('🌱 Database is empty. Seeding initial demo data...');
+          
+          const seededTxs: Transaction[] = [];
+          const seededBudgets: Budget[] = [];
+
+          // 1. Seed Budgets
+          for (const b of INITIAL_BUDGETS) {
+            const res = await fetch('/api/budgets', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(b)
+            });
+            if (res.ok) {
+              seededBudgets.push(await res.json());
+            }
+          }
+
+          // 2. Seed Transactions
+          for (const tx of INITIAL_TRANSACTIONS) {
+            const res = await fetch('/api/transactions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...tx, id: crypto.randomUUID() })
+            });
+            if (res.ok) {
+              seededTxs.push(await res.json());
+            }
+          }
+
+          setTransactions(seededTxs);
+          setBudgets(seededBudgets);
+        } else {
+          setTransactions(txData);
+          setBudgets(budgetData);
+        }
+      } catch (err) {
+        console.error('Error fetching database:', err);
+      } finally {
+        setIsLoaded(true);
       }
-
-      if (storedBudgets) {
-        setBudgets(JSON.parse(storedBudgets));
-      } else {
-        setBudgets(INITIAL_BUDGETS);
-        localStorage.setItem(STORAGE_KEY_BUDGETS, JSON.stringify(INITIAL_BUDGETS));
-      }
-
-      setIsLoaded(true);
     }
+
+    loadData();
   }, []);
 
-  // Save transactions to localStorage
-  const saveTransactions = (newTx: Transaction[]) => {
-    setTransactions(newTx);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(newTx));
-    }
-  };
-
-  // Save budgets to localStorage
-  const saveBudgets = (newBudgets: Budget[]) => {
-    setBudgets(newBudgets);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_BUDGETS, JSON.stringify(newBudgets));
-    }
-  };
-
   // CRUD Transaction
-  const addTransaction = (tx: Omit<Transaction, 'id'>) => {
-    const newTx: Transaction = {
-      ...tx,
-      id: crypto.randomUUID()
-    };
-    saveTransactions([newTx, ...transactions]);
+  const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
+    try {
+      const id = crypto.randomUUID();
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...tx, id })
+      });
+
+      if (!res.ok) throw new Error('Gagal menyimpan transaksi ke database.');
+
+      const newTx: Transaction = await res.json();
+      setTransactions(prev => [newTx, ...prev]);
+    } catch (err) {
+      console.error(err);
+      alert('Gagal mencatat transaksi.');
+    }
   };
 
-  const editTransaction = (id: string, updatedFields: Partial<Transaction>) => {
-    const updated = transactions.map(t => {
-      if (t.id === id) {
-        return { ...t, ...updatedFields };
-      }
-      return t;
-    });
-    saveTransactions(updated);
+  const editTransaction = async (id: string, updatedFields: Partial<Transaction>) => {
+    try {
+      // Fetch full transaction data to patch
+      const current = transactions.find(t => t.id === id);
+      if (!current) return;
+
+      const patched = { ...current, ...updatedFields };
+
+      const res = await fetch(`/api/transactions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patched)
+      });
+
+      if (!res.ok) throw new Error('Gagal memperbarui transaksi di database.');
+
+      const updatedTx: Transaction = await res.json();
+      setTransactions(prev => prev.map(t => t.id === id ? updatedTx : t));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal mengubah transaksi.');
+    }
   };
 
-  const deleteTransaction = (id: string) => {
-    const updated = transactions.filter(t => t.id !== id);
-    saveTransactions(updated);
+  const deleteTransaction = async (id: string) => {
+    try {
+      const res = await fetch(`/api/transactions/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) throw new Error('Gagal menghapus transaksi dari database.');
+
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus transaksi.');
+    }
   };
 
   // CRUD Budget
-  const setBudget = (category: string, limit: number) => {
-    const exists = budgets.find(b => b.category === category);
-    let newBudgets: Budget[];
-    if (exists) {
-      newBudgets = budgets.map(b => b.category === category ? { ...b, limit } : b);
-    } else {
-      newBudgets = [...budgets, { category, limit }];
+  const setBudget = async (category: string, limit: number) => {
+    try {
+      const res = await fetch('/api/budgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, limit })
+      });
+
+      if (!res.ok) throw new Error('Gagal menyimpan anggaran ke database.');
+
+      const newBudget: Budget = await res.json();
+      setBudgets(prev => {
+        const exists = prev.some(b => b.category === category);
+        if (exists) {
+          return prev.map(b => b.category === category ? newBudget : b);
+        }
+        return [...prev, newBudget];
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Gagal memperbarui anggaran.');
     }
-    saveBudgets(newBudgets);
   };
 
-  const deleteBudget = (category: string) => {
-    const newBudgets = budgets.filter(b => b.category !== category);
-    saveBudgets(newBudgets);
+  const deleteBudget = async (category: string) => {
+    try {
+      const encodedCategory = encodeURIComponent(category);
+      const res = await fetch(`/api/budgets/${encodedCategory}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) throw new Error('Gagal menghapus anggaran dari database.');
+
+      setBudgets(prev => prev.filter(b => b.category !== category));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus anggaran.');
+    }
   };
 
   // Import / Export JSON
@@ -165,7 +237,7 @@ export function useFinance() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `monetory-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `monetory-neon-backup-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -189,8 +261,48 @@ export function useFinance() {
           return { success: false, error: 'Format data transaksi tidak valid.' };
         }
 
-        saveTransactions(parsed.transactions);
-        saveBudgets(parsed.budgets);
+        // Asynchronously upload everything to database in background
+        // First delete local entries and upload
+        async function runImport() {
+          setIsLoaded(false);
+          
+          // Clear current budgets
+          for (const b of budgets) {
+            await deleteBudget(b.category);
+          }
+          // Clear current transactions
+          for (const t of transactions) {
+            await deleteTransaction(t.id);
+          }
+
+          // Upload budgets
+          const importedBudgets: Budget[] = [];
+          for (const b of parsed.budgets) {
+            const res = await fetch('/api/budgets', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(b)
+            });
+            if (res.ok) importedBudgets.push(await res.json());
+          }
+
+          // Upload transactions
+          const importedTxs: Transaction[] = [];
+          for (const tx of parsed.transactions) {
+            const res = await fetch('/api/transactions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(tx)
+            });
+            if (res.ok) importedTxs.push(await res.json());
+          }
+
+          setBudgets(importedBudgets);
+          setTransactions(importedTxs);
+          setIsLoaded(true);
+        }
+
+        runImport();
         return { success: true };
       }
       return { success: false, error: 'File backup harus berisi array transaksi dan anggaran.' };
@@ -210,7 +322,6 @@ export function useFinance() {
 
   const balance = totalIncome - totalExpense;
 
-  // Calculate actual spending per category (only from expenses)
   const categorySpend = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
