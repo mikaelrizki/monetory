@@ -10,15 +10,19 @@ export async function GET() {
     await initDb();
     
     const rows = await sql`
-      SELECT id, type, amount, category, date, note 
+      SELECT id, type, amount, category, date, note, account_id
       FROM transactions 
       ORDER BY date DESC, created_at DESC
     `;
     
-    // Parse numeric types from pg driver to js numbers
     const transactions = rows.map(row => ({
-      ...row,
-      amount: parseFloat(row.amount as string)
+      id: row.id,
+      type: row.type as any,
+      amount: parseFloat(row.amount as string),
+      category: row.category,
+      date: row.date,
+      note: row.note,
+      account_id: row.account_id || undefined
     }));
 
     return NextResponse.json(transactions);
@@ -36,7 +40,7 @@ export async function POST(request: Request) {
   try {
     await initDb();
     const body = await request.json();
-    const { id, type, amount, category, date, note } = body;
+    const { id, type, amount, category, date, note, account_id } = body;
 
     // Validation
     if (!type || !amount || !category || !date) {
@@ -54,10 +58,28 @@ export async function POST(request: Request) {
 
     const txId = id || crypto.randomUUID();
 
+    // 1. Insert transaction into Postgres
     await sql`
-      INSERT INTO transactions (id, type, amount, category, date, note)
-      VALUES (${txId}, ${type}, ${parsedAmount}, ${category}, ${date}, ${note || ''})
+      INSERT INTO transactions (id, type, amount, category, date, note, account_id)
+      VALUES (${txId}, ${type}, ${parsedAmount}, ${category}, ${date}, ${note || ''}, ${account_id || null})
     `;
+
+    // 2. Adjust target account balance if account_id is provided
+    if (account_id) {
+      if (type === 'expense') {
+        await sql`
+          UPDATE accounts 
+          SET balance = balance - ${parsedAmount}
+          WHERE id = ${account_id}
+        `;
+      } else {
+        await sql`
+          UPDATE accounts 
+          SET balance = balance + ${parsedAmount}
+          WHERE id = ${account_id}
+        `;
+      }
+    }
 
     return NextResponse.json({
       id: txId,
@@ -65,7 +87,8 @@ export async function POST(request: Request) {
       amount: parsedAmount,
       category,
       date,
-      note: note || ''
+      note: note || '',
+      account_id: account_id || undefined
     }, { status: 201 });
   } catch (error: any) {
     console.error('API Error (POST /api/transactions):', error);

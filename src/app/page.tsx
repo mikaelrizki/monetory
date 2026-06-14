@@ -6,20 +6,24 @@ import { Transaction } from '@/types';
 import Dashboard from '@/components/Dashboard';
 import TransactionsList from '@/components/TransactionsList';
 import BudgetsManager from '@/components/BudgetsManager';
+import AccountsManager from '@/components/AccountsManager';
 import Charts from '@/components/Charts';
 import TransactionModal from '@/components/TransactionModal';
-import { LayoutDashboard, ArrowRightLeft, PiggyBank, PieChart, Coins, Plus, Menu } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, PiggyBank, PieChart, Coins, Plus, Menu, Wallet } from 'lucide-react';
 
 export default function Home() {
   const {
     transactions,
     budgets,
+    accounts,
     isLoaded,
     addTransaction,
     editTransaction,
     deleteTransaction,
     setBudget,
     deleteBudget,
+    addAccount,
+    deleteAccount,
     exportData,
     importData,
     totalIncome,
@@ -67,6 +71,11 @@ export default function Home() {
   }
 
   const handleOpenAddModal = () => {
+    if (accounts.length === 0) {
+      alert('Silakan buat sumber dana terlebih dahulu di tab "Sumber Dana".');
+      setActiveTab('accounts');
+      return;
+    }
     setEditTxData(null);
     setIsModalOpen(true);
   };
@@ -98,12 +107,14 @@ export default function Home() {
             balance={balance}
             onAddTransactionClick={handleOpenAddModal}
             onNavigateToTab={(tab) => setActiveTab(tab)}
+            accounts={accounts}
           />
         );
       case 'transactions':
         return (
           <TransactionsList
             transactions={transactions}
+            accounts={accounts}
             onEditTransaction={handleOpenEditModal}
             onDeleteTransaction={deleteTransaction}
             onExport={exportData}
@@ -117,6 +128,14 @@ export default function Home() {
             categorySpend={categorySpend}
             onSetBudget={setBudget}
             onDeleteBudget={deleteBudget}
+          />
+        );
+      case 'accounts':
+        return (
+          <AccountsManager
+            accounts={accounts}
+            onAddAccount={addAccount}
+            onDeleteAccount={deleteAccount}
           />
         );
       case 'charts':
@@ -200,6 +219,12 @@ export default function Home() {
             <ArrowRightLeft size={18} /> Transaksi
           </button>
           <button
+            className={`tab-btn ${activeTab === 'accounts' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('accounts'); setIsMobileMenuOpen(false); }}
+          >
+            <Wallet size={18} /> Sumber Dana
+          </button>
+          <button
             className={`tab-btn ${activeTab === 'budgets' ? 'active' : ''}`}
             onClick={() => { setActiveTab('budgets'); setIsMobileMenuOpen(false); }}
           >
@@ -233,6 +258,7 @@ export default function Home() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleModalSubmit}
         editTransactionData={editTxData}
+        accounts={accounts}
       />
 
       {/* Embedded CSS for responsive adjustments */}

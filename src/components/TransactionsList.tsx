@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { Transaction, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../types';
-import { Edit2, Trash2, Search, Filter, ArrowUpDown, Download, Upload, AlertCircle } from 'lucide-react';
+import { Transaction, Account, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../types';
+import { Edit2, Trash2, Search, ArrowUpDown, Download, Upload, AlertCircle } from 'lucide-react';
 
 interface TransactionsListProps {
   transactions: Transaction[];
+  accounts: Account[];
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
   onExport: () => void;
@@ -17,6 +18,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function TransactionsList({
   transactions,
+  accounts,
   onEditTransaction,
   onDeleteTransaction,
   onExport,
@@ -26,6 +28,7 @@ export default function TransactionsList({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [filterAccount, setFilterAccount] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -91,11 +94,14 @@ export default function TransactionsList({
     // 3. Category filter
     const matchesCategory = filterCategory === 'all' || t.category === filterCategory;
 
-    // 4. Date range filter
+    // 4. Account filter
+    const matchesAccount = filterAccount === 'all' || t.account_id === filterAccount;
+
+    // 5. Date range filter
     const matchesStartDate = !startDate || t.date >= startDate;
     const matchesEndDate = !endDate || t.date <= endDate;
 
-    return matchesSearch && matchesType && matchesCategory && matchesStartDate && matchesEndDate;
+    return matchesSearch && matchesType && matchesCategory && matchesAccount && matchesStartDate && matchesEndDate;
   });
 
   // Sort logic
@@ -157,7 +163,7 @@ export default function TransactionsList({
           {/* Note Search */}
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label htmlFor="search" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <Search size={14} /> Cari Deskripsi/Kategori
+              <Search size={14} /> Cari Deskripsi
             </label>
             <input
               type="text"
@@ -179,6 +185,21 @@ export default function TransactionsList({
               <option value="all">Semua Tipe</option>
               <option value="expense">Pengeluaran</option>
               <option value="income">Pemasukan</option>
+            </select>
+          </div>
+
+          {/* Account Filter */}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label htmlFor="filterAccount">Rekening / Dompet</label>
+            <select
+              id="filterAccount"
+              value={filterAccount}
+              onChange={(e) => setFilterAccount(e.target.value)}
+            >
+              <option value="all">Semua Rekening</option>
+              {accounts.map(acc => (
+                <option key={acc.id} value={acc.id}>{acc.name}</option>
+              ))}
             </select>
           </div>
 
@@ -251,11 +272,11 @@ export default function TransactionsList({
           </div>
         ) : (
           <div style={{ overflowX: 'auto', width: '100%' }}>
-            {/* Table layout for larger screens */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600 }}>
                   <th style={{ padding: '0.75rem 1rem' }}>Tanggal</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Rekening</th>
                   <th style={{ padding: '0.75rem 1rem' }}>Kategori</th>
                   <th style={{ padding: '0.75rem 1rem' }}>Deskripsi</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Jumlah</th>
@@ -265,6 +286,10 @@ export default function TransactionsList({
               <tbody>
                 {sortedTransactions.map((tx) => {
                   const isExpense = tx.type === 'expense';
+                  // Find associated account
+                  const associatedAccount = accounts.find(a => a.id === tx.account_id);
+                  const accountName = associatedAccount ? associatedAccount.name : 'Tanpa Rekening';
+
                   return (
                     <tr 
                       key={tx.id} 
@@ -278,6 +303,9 @@ export default function TransactionsList({
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td style={{ padding: '1rem' }}>{tx.date}</td>
+                      <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                        {accountName}
+                      </td>
                       <td style={{ padding: '1rem' }}>
                         <span style={{ 
                           display: 'inline-block',

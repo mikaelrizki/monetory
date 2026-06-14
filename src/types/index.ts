@@ -5,6 +5,7 @@ export interface Transaction {
   category: string;
   date: string;
   note: string;
+  account_id?: string; // Associated source of funds Account ID
 }
 
 export interface Budget {
@@ -12,7 +13,15 @@ export interface Budget {
   limit: number;
 }
 
+export interface Account {
+  id: string;
+  name: string; // e.g. "BCA", "GoPay", "OVO", "Tunai"
+  type: 'bank' | 'ewallet' | 'cash' | 'other';
+  balance: number;
+}
+
 export type CategoryType = 'income' | 'expense';
+export type AccountType = 'bank' | 'ewallet' | 'cash' | 'other';
 
 export const EXPENSE_CATEGORIES = [
   'Makanan & Minuman',
@@ -31,4 +40,11 @@ export const INCOME_CATEGORIES = [
   'Sampingan',
   'Hadiah / Bonus',
   'Lain-lain'
+];
+
+export const ACCOUNT_TYPES = [
+  { value: 'bank', label: 'Bank / Rekening' },
+  { value: 'ewallet', label: 'E-Wallet' },
+  { value: 'cash', label: 'Uang Tunai (Cash)' },
+  { value: 'other', label: 'Lainnya' }
 ];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { Transaction, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../types';
+import { Transaction, Account, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../types';
 import { X } from 'lucide-react';
 
 interface TransactionModalProps {
@@ -9,13 +9,15 @@ interface TransactionModalProps {
   onClose: () => void;
   onSubmit: (tx: Omit<Transaction, 'id'>) => void;
   editTransactionData: Transaction | null;
+  accounts: Account[];
 }
 
 export default function TransactionModal({
   isOpen,
   onClose,
   onSubmit,
-  editTransactionData
+  editTransactionData,
+  accounts
 }: TransactionModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   
@@ -24,6 +26,7 @@ export default function TransactionModal({
   const [category, setCategory] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [note, setNote] = useState<string>('');
+  const [accountId, setAccountId] = useState<string>('');
 
   // Handle open/close state of native dialog
   useEffect(() => {
@@ -49,13 +52,14 @@ export default function TransactionModal({
       setCategory(editTransactionData.category);
       setDate(editTransactionData.date);
       setNote(editTransactionData.note);
+      setAccountId(editTransactionData.account_id || '');
     } else {
-      // Defaults for new transaction
       setType('expense');
       setAmount('');
       setCategory('');
       setDate(new Date().toISOString().split('T')[0]);
       setNote('');
+      setAccountId('');
     }
   }, [editTransactionData, isOpen]);
 
@@ -119,6 +123,14 @@ export default function TransactionModal({
     setCategory(''); // reset category on type switch
   };
 
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0
+    }).format(val);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -126,13 +138,15 @@ export default function TransactionModal({
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
     if (!category) return;
     if (!date) return;
+    if (!accountId) return; // Account is now required for new transactions
 
     onSubmit({
       type,
       amount: parsedAmount,
       category,
       date,
-      note
+      note,
+      account_id: accountId
     });
 
     handleClose();
@@ -155,7 +169,7 @@ export default function TransactionModal({
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
-        {/* Income / Expense Tabs inside form */}
+        {/* Income / Expense Tabs */}
         <div className="flex gap-2" style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.04)', padding: '4px', borderRadius: '8px' }}>
           <button
             type="button"
@@ -200,6 +214,28 @@ export default function TransactionModal({
           />
           <div id="amount-error" className="error-msg">
             ❌ Masukkan jumlah yang valid (minimal Rp 1).
+          </div>
+        </div>
+
+        {/* Account Selector Field */}
+        <div className="form-group">
+          <label htmlFor="accountId">Rekening / Sumber Dana *</label>
+          <select
+            id="accountId"
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            required
+            aria-describedby="accountId-error"
+          >
+            <option value="" disabled hidden>Pilih Sumber Dana</option>
+            {accounts.map((acc) => (
+              <option key={acc.id} value={acc.id}>
+                {acc.name} (Saldo: {formatCurrency(acc.balance)})
+              </option>
+            ))}
+          </select>
+          <div id="accountId-error" className="error-msg">
+            ❌ Silakan pilih salah satu rekening/sumber dana.
           </div>
         </div>
 

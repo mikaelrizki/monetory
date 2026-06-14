@@ -28,10 +28,21 @@ export async function initDb() {
   }
 
   try {
-    // 1. Create transactions table
+    // 1. Create accounts table
+    await sql`
+      CREATE TABLE IF NOT EXISTS accounts (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(50) NOT NULL,
+        type VARCHAR(20) NOT NULL,
+        balance NUMERIC(15, 2) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // 2. Create transactions table
     await sql`
       CREATE TABLE IF NOT EXISTS transactions (
-        id UUID PRIMARY KEY,
+        id VARCHAR(50) PRIMARY KEY,
         type VARCHAR(10) NOT NULL,
         amount NUMERIC(15, 2) NOT NULL,
         category VARCHAR(50) NOT NULL,
@@ -41,7 +52,12 @@ export async function initDb() {
       )
     `;
 
-    // 2. Create budgets table
+    // 3. Migrate transactions table to add account_id column
+    await sql`
+      ALTER TABLE transactions ADD COLUMN IF NOT EXISTS account_id VARCHAR(50)
+    `;
+
+    // 4. Create budgets table
     await sql`
       CREATE TABLE IF NOT EXISTS budgets (
         category VARCHAR(50) PRIMARY KEY,

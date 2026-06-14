@@ -1,6 +1,7 @@
 "use client";
 
-import { Transaction, Budget } from '../types';
+import { useState } from 'react';
+import { Transaction, Budget, Account } from '../types';
 import { ArrowUpRight, ArrowDownRight, Wallet, AlertTriangle, Plus, ArrowRight } from 'lucide-react';
 
 interface DashboardProps {
@@ -12,6 +13,7 @@ interface DashboardProps {
   balance: number;
   onAddTransactionClick: () => void;
   onNavigateToTab: (tab: string) => void;
+  accounts: Account[];
 }
 
 export default function Dashboard({
@@ -22,8 +24,11 @@ export default function Dashboard({
   totalExpense,
   balance,
   onAddTransactionClick,
-  onNavigateToTab
+  onNavigateToTab,
+  accounts
 }: DashboardProps) {
+  const [balanceType, setBalanceType] = useState<'monthly' | 'total'>('monthly');
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -33,6 +38,22 @@ export default function Dashboard({
   };
 
   const recentTxs = transactions.slice(0, 4);
+
+  // Compute current month cash flow
+  const currentMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+  const currentMonthTxs = transactions.filter(t => t.date.startsWith(currentMonth));
+  const currentMonthIncome = currentMonthTxs
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const currentMonthExpense = currentMonthTxs
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const currentMonthNet = currentMonthIncome - currentMonthExpense;
+
+  // Compute total balance across all source funds
+  const totalAccountsBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+
+  const displayBalance = balanceType === 'monthly' ? currentMonthNet : totalAccountsBalance;
 
   // Check for budget alerts
   const budgetAlerts = budgets
@@ -82,9 +103,32 @@ export default function Dashboard({
           }}>
             <Wallet size={20} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Saldo Bersih</span>
-            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'white' }}>{formatCurrency(balance)}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+            {/* Interactive Select Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <select
+                value={balanceType}
+                onChange={(e) => setBalanceType(e.target.value as any)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  padding: '0 0.5rem 0 0',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  width: 'auto',
+                  margin: 0
+                }}
+              >
+                <option value="monthly" style={{ background: '#0f131f', color: 'white' }}>Selisih Bulan Ini</option>
+                <option value="total" style={{ background: '#0f131f', color: 'white' }}>Total Sumber Dana</option>
+              </select>
+            </div>
+            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'white', marginTop: '0.15rem' }}>
+              {formatCurrency(displayBalance)}
+            </span>
           </div>
         </div>
 
