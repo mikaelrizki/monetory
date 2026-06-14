@@ -190,13 +190,13 @@ export default function TransactionsList({
 
           {/* Account Filter */}
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label htmlFor="filterAccount">Rekening / Dompet</label>
+            <label htmlFor="filterAccount">Sumber Dana</label>
             <select
               id="filterAccount"
               value={filterAccount}
               onChange={(e) => setFilterAccount(e.target.value)}
             >
-              <option value="all">Semua Rekening</option>
+              <option value="all">Semua Sumber Dana</option>
               {accounts.map(acc => (
                 <option key={acc.id} value={acc.id}>{acc.name}</option>
               ))}
@@ -276,7 +276,7 @@ export default function TransactionsList({
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600 }}>
                   <th style={{ padding: '0.75rem 1rem' }}>Tanggal</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Rekening</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Sumber Dana</th>
                   <th style={{ padding: '0.75rem 1rem' }}>Kategori</th>
                   <th style={{ padding: '0.75rem 1rem' }}>Deskripsi</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Jumlah</th>
@@ -288,7 +288,7 @@ export default function TransactionsList({
                   const isExpense = tx.type === 'expense';
                   // Find associated account
                   const associatedAccount = accounts.find(a => a.id === tx.account_id);
-                  const accountName = associatedAccount ? associatedAccount.name : 'Tanpa Rekening';
+                  const accountName = associatedAccount ? associatedAccount.name : 'Tanpa Sumber Dana';
 
                   return (
                     <tr 

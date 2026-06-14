@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql, initDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 
 export async function GET() {
   if (!sql) {
@@ -8,10 +9,15 @@ export async function GET() {
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const rows = await sql`
       SELECT id, name, type, balance
       FROM accounts
+      WHERE user_id = ${user.id}
       ORDER BY name ASC, created_at DESC
     `;
 
@@ -36,6 +42,11 @@ export async function POST(request: Request) {
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, name, type, balance } = body;
 
@@ -56,8 +67,8 @@ export async function POST(request: Request) {
     const accountId = id || crypto.randomUUID();
 
     await sql`
-      INSERT INTO accounts (id, name, type, balance)
-      VALUES (${accountId}, ${name}, ${type}, ${parsedBalance})
+      INSERT INTO accounts (id, name, type, balance, user_id)
+      VALUES (${accountId}, ${name}, ${type}, ${parsedBalance}, ${user.id})
     `;
 
     return NextResponse.json({

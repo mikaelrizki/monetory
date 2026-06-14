@@ -78,12 +78,12 @@ export default function AccountsManager({
         background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(99, 102, 241, 0.12) 100%)'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <h2 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Saldo (Seluruh Rekening)</h2>
+          <h2 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Saldo (Seluruh Sumber Dana)</h2>
           <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'white' }}>{formatCurrency(totalWealth)}</span>
         </div>
         {!showAddForm && (
           <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
-            <Plus size={16} /> Tambah Rekening
+            <Plus size={16} /> Tambah Sumber Dana
           </button>
         )}
       </div>
@@ -91,11 +91,11 @@ export default function AccountsManager({
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start', width: '100%' }}>
         {/* Accounts Cards List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Daftar Rekening</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Daftar Sumber Dana</h3>
           
           {accounts.length === 0 ? (
             <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <p style={{ fontSize: '0.9rem' }}>Belum ada rekening atau sumber dana yang dibuat.</p>
+              <p style={{ fontSize: '0.9rem' }}>Belum ada sumber dana yang dibuat.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -175,7 +175,7 @@ export default function AccountsManager({
                           e.currentTarget.style.color = 'var(--text-secondary)';
                           e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
                         }}
-                        title="Hapus Rekening"
+                        title="Hapus Sumber Dana"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -196,11 +196,11 @@ export default function AccountsManager({
         {/* Add Account Form */}
         {showAddForm && (
           <div className="glass-panel" style={{ padding: '1.5rem', animation: 'fadeIn 0.25s ease' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.25rem' }}>Tambah Rekening Baru</h3>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.25rem' }}>Tambah Sumber Dana Baru</h3>
             
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }} noValidate>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="accName">Nama Rekening / E-Wallet *</label>
+                <label htmlFor="accName">Nama Sumber Dana *</label>
                 <input
                   type="text"
                   id="accName"
@@ -212,7 +212,7 @@ export default function AccountsManager({
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="accType">Tipe Rekening *</label>
+                <label htmlFor="accType">Tipe Sumber Dana *</label>
                 <select
                   id="accType"
                   value={type}

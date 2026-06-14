@@ -219,7 +219,7 @@ export default function TransactionModal({
 
         {/* Account Selector Field */}
         <div className="form-group">
-          <label htmlFor="accountId">Rekening / Sumber Dana *</label>
+          <label htmlFor="accountId">Sumber Dana *</label>
           <select
             id="accountId"
             value={accountId}
@@ -235,7 +235,7 @@ export default function TransactionModal({
             ))}
           </select>
           <div id="accountId-error" className="error-msg">
-            ❌ Silakan pilih salah satu rekening/sumber dana.
+            ❌ Silakan pilih salah satu sumber dana.
           </div>
         </div>
 

@@ -28,6 +28,25 @@ export async function initDb() {
   }
 
   try {
+    // 0. Create users table
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(50) PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        name VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Migrate existing users to add name column if not exists
+    await sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(100)
+    `;
+    await sql`
+      UPDATE users SET name = username WHERE name IS NULL
+    `;
+
     // 1. Create accounts table
     await sql`
       CREATE TABLE IF NOT EXISTS accounts (
@@ -52,19 +71,53 @@ export async function initDb() {
       )
     `;
 
-    // 3. Migrate transactions table to add account_id column
+    // 3. Migrate tables to add user_id / account_id columns
     await sql`
       ALTER TABLE transactions ADD COLUMN IF NOT EXISTS account_id VARCHAR(50)
+    `;
+
+    await sql`
+      ALTER TABLE accounts ADD COLUMN IF NOT EXISTS user_id VARCHAR(50)
+    `;
+    await sql`
+      UPDATE accounts SET user_id = 'legacy' WHERE user_id IS NULL
+    `;
+
+    await sql`
+      ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id VARCHAR(50)
+    `;
+    await sql`
+      UPDATE transactions SET user_id = 'legacy' WHERE user_id IS NULL
     `;
 
     // 4. Create budgets table
     await sql`
       CREATE TABLE IF NOT EXISTS budgets (
-        category VARCHAR(50) PRIMARY KEY,
+        category VARCHAR(50) NOT NULL,
         limit_amount NUMERIC(15, 2) NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `;
+
+    await sql`
+      ALTER TABLE budgets ADD COLUMN IF NOT EXISTS user_id VARCHAR(50)
+    `;
+    await sql`
+      UPDATE budgets SET user_id = 'legacy' WHERE user_id IS NULL
+    `;
+
+    // 5. Migrate budgets key to composite primary key (user_id, category)
+    try {
+      await sql`
+        ALTER TABLE budgets DROP CONSTRAINT IF EXISTS budgets_pkey
+      `;
+      await sql`
+        ALTER TABLE budgets ADD PRIMARY KEY (user_id, category)
+      `;
+    } catch (keyErr) {
+      console.log('Composite primary key for budgets already exists or migration skipped:', keyErr);
+    }
+
   } catch (error) {
     console.error("❌ Failed to initialize database tables:", error);
     throw error;

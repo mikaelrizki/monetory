@@ -104,18 +104,19 @@ export default function Dashboard({
             <Wallet size={20} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Saldo Bersih</span>
             {/* Interactive Select Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: '0.1rem' }}>
               <select
                 value={balanceType}
                 onChange={(e) => setBalanceType(e.target.value as any)}
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  padding: '0 0.5rem 0 0',
+                  color: 'var(--color-primary-light)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  padding: '0',
                   cursor: 'pointer',
                   outline: 'none',
                   width: 'auto',
@@ -126,7 +127,7 @@ export default function Dashboard({
                 <option value="total" style={{ background: '#0f131f', color: 'white' }}>Total Sumber Dana</option>
               </select>
             </div>
-            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'white', marginTop: '0.15rem' }}>
+            <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'white', marginTop: '0.3rem' }}>
               {formatCurrency(displayBalance)}
             </span>
           </div>

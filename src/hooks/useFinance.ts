@@ -1,9 +1,6 @@
 "use client";
-
 import { useState, useEffect } from 'react';
-import { Transaction, Budget, Account } from '../types';
-
-const STORAGE_KEY_LAST_SYNC = 'monetory_last_sync';
+import { Transaction, Budget, Account, User } from '../types';
 
 const INITIAL_ACCOUNTS = [
   {
@@ -93,6 +90,7 @@ const INITIAL_BUDGETS = [
 ];
 
 export function useFinance() {
+  const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -110,9 +108,38 @@ export function useFinance() {
     }
   };
 
-  // Load database entries on mount
+  // 1. Check user session on mount
   useEffect(() => {
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            setUser(data.user);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Error checking session:', err);
+      } finally {
+        setIsLoaded(true);
+      }
+    }
+    checkSession();
+  }, []);
+
+  // 2. Fetch data when user is authenticated
+  useEffect(() => {
+    if (!user) {
+      setTransactions([]);
+      setBudgets([]);
+      setAccounts([]);
+      return;
+    }
+
     async function loadData() {
+      setIsLoaded(false);
       try {
         const [txRes, budgetRes, accountRes] = await Promise.all([
           fetch('/api/transactions'),
@@ -128,15 +155,15 @@ export function useFinance() {
         const budgetData = await budgetRes.json();
         const accountData = await accountRes.json();
 
-        // Database seeding logic: if database is completely empty, populate it with demo values
+        // Database seeding logic for new user (no transactions/budgets/accounts)
         if (txData.length === 0 && budgetData.length === 0 && accountData.length === 0) {
-          console.log('🌱 Database is empty. Seeding initial demo data with accounts...');
+          console.log('🌱 User account is empty. Seeding initial demo data with accounts...');
           
           const seededAccounts: Account[] = [];
           const seededBudgets: Budget[] = [];
           const seededTxs: Transaction[] = [];
 
-          // 1. Seed Accounts
+          // Seed Accounts
           for (const acc of INITIAL_ACCOUNTS) {
             const res = await fetch('/api/accounts', {
               method: 'POST',
@@ -148,7 +175,7 @@ export function useFinance() {
             }
           }
 
-          // 2. Seed Budgets
+          // Seed Budgets
           for (const b of INITIAL_BUDGETS) {
             const res = await fetch('/api/budgets', {
               method: 'POST',
@@ -160,7 +187,7 @@ export function useFinance() {
             }
           }
 
-          // 3. Seed Transactions
+          // Seed Transactions
           for (const tx of INITIAL_TRANSACTIONS) {
             const res = await fetch('/api/transactions', {
               method: 'POST',
@@ -172,9 +199,7 @@ export function useFinance() {
             }
           }
 
-          // Update local state with seeded values
-          // Note: accounts balances are updated by the backend triggers on transaction POSTs
-          // We refetch accounts from backend to get the correct computed balances after seeds
+          // Re-fetch accounts to get the correct computed balances after seeds
           const finalAccountsRes = await fetch('/api/accounts');
           if (finalAccountsRes.ok) {
             setAccounts(await finalAccountsRes.json());
@@ -197,7 +222,90 @@ export function useFinance() {
     }
 
     loadData();
-  }, []);
+  }, [user]);
+
+  // Auth Operations
+  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoaded(false);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setIsLoaded(true);
+        return { success: false, error: data.error || 'Login gagal.' };
+      }
+
+      setUser(data);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoaded(true);
+      return { success: false, error: err.message || 'Terjadi kesalahan saat masuk.' };
+    }
+  };
+
+  const register = async (username: string, password: string, name?: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoaded(false);
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, name })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setIsLoaded(true);
+        return { success: false, error: data.error || 'Pendaftaran gagal.' };
+      }
+
+      setUser(data);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoaded(true);
+      return { success: false, error: err.message || 'Terjadi kesalahan saat mendaftar.' };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setIsLoaded(false);
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setUser(null);
+    } catch (err) {
+      console.error('Error during logout:', err);
+    } finally {
+      setIsLoaded(true);
+    }
+  };
+
+  const updateProfile = async (name: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoaded(false);
+      const res = await fetch('/api/auth/update-profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setIsLoaded(true);
+        return { success: false, error: data.error || 'Gagal memperbarui profil.' };
+      }
+
+      setUser(data);
+      setIsLoaded(true);
+      return { success: true };
+    } catch (err: any) {
+      setIsLoaded(true);
+      return { success: false, error: err.message || 'Terjadi kesalahan saat memperbarui profil.' };
+    }
+  };
 
   // CRUD Transaction
   const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
@@ -214,7 +322,6 @@ export function useFinance() {
       const newTx: Transaction = await res.json();
       setTransactions(prev => [newTx, ...prev]);
       
-      // Re-fetch accounts to update balances in UI
       await fetchAccounts();
     } catch (err) {
       console.error(err);
@@ -240,7 +347,6 @@ export function useFinance() {
       const updatedTx: Transaction = await res.json();
       setTransactions(prev => prev.map(t => t.id === id ? updatedTx : t));
       
-      // Re-fetch accounts to update balances in UI
       await fetchAccounts();
     } catch (err) {
       console.error(err);
@@ -258,7 +364,6 @@ export function useFinance() {
 
       setTransactions(prev => prev.filter(t => t.id !== id));
       
-      // Re-fetch accounts to update balances in UI
       await fetchAccounts();
     } catch (err) {
       console.error(err);
@@ -317,13 +422,13 @@ export function useFinance() {
         body: JSON.stringify({ ...acc, id })
       });
 
-      if (!res.ok) throw new Error('Gagal menyimpan rekening ke database.');
+      if (!res.ok) throw new Error('Gagal menyimpan sumber dana ke database.');
 
       const newAcc: Account = await res.json();
       setAccounts(prev => [...prev, newAcc]);
     } catch (err) {
       console.error(err);
-      alert('Gagal membuat rekening baru.');
+      alert('Gagal membuat sumber dana baru.');
     }
   };
 
@@ -340,13 +445,13 @@ export function useFinance() {
         body: JSON.stringify(patched)
       });
 
-      if (!res.ok) throw new Error('Gagal memperbarui rekening di database.');
+      if (!res.ok) throw new Error('Gagal memperbarui sumber dana di database.');
 
       const updatedAcc: Account = await res.json();
       setAccounts(prev => prev.map(a => a.id === id ? updatedAcc : a));
     } catch (err) {
       console.error(err);
-      alert('Gagal mengubah rekening.');
+      alert('Gagal mengubah sumber dana.');
     }
   };
 
@@ -356,15 +461,13 @@ export function useFinance() {
         method: 'DELETE'
       });
 
-      if (!res.ok) throw new Error('Gagal menghapus rekening dari database.');
+      if (!res.ok) throw new Error('Gagal menghapus sumber dana dari database.');
 
       setAccounts(prev => prev.filter(a => a.id !== id));
-      
-      // Update transactions state locally as backend updates transactions account_id to NULL
       setTransactions(prev => prev.map(t => t.account_id === id ? { ...t, account_id: undefined } : t));
     } catch (err) {
       console.error(err);
-      alert('Gagal menghapus rekening.');
+      alert('Gagal menghapus sumber dana.');
     }
   };
 
@@ -402,20 +505,16 @@ export function useFinance() {
         async function runImport() {
           setIsLoaded(false);
           
-          // Clear current budgets
           for (const b of budgets) {
             await deleteBudget(b.category);
           }
-          // Clear current transactions
           for (const t of transactions) {
             await deleteTransaction(t.id);
           }
-          // Clear current accounts
           for (const a of accounts) {
             await deleteAccount(a.id);
           }
 
-          // Upload accounts
           const importedAccounts: Account[] = [];
           for (const a of parsed.accounts) {
             const res = await fetch('/api/accounts', {
@@ -426,7 +525,6 @@ export function useFinance() {
             if (res.ok) importedAccounts.push(await res.json());
           }
 
-          // Upload budgets
           const importedBudgets: Budget[] = [];
           for (const b of parsed.budgets) {
             const res = await fetch('/api/budgets', {
@@ -437,7 +535,6 @@ export function useFinance() {
             if (res.ok) importedBudgets.push(await res.json());
           }
 
-          // Upload transactions
           const importedTxs: Transaction[] = [];
           for (const tx of parsed.transactions) {
             const res = await fetch('/api/transactions', {
@@ -464,13 +561,12 @@ export function useFinance() {
         runImport();
         return { success: true };
       }
-      return { success: false, error: 'File backup harus berisi array transaksi, anggaran, dan rekening.' };
+      return { success: false, error: 'File backup harus berisi array transaksi, anggaran, dan sumber dana.' };
     } catch (err: any) {
       return { success: false, error: err.message || 'Gagal membaca file JSON.' };
     }
   };
 
-  // Calculations
   const totalIncome = transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -489,10 +585,15 @@ export function useFinance() {
     }, {} as Record<string, number>);
 
   return {
+    user,
     transactions,
     budgets,
     accounts,
     isLoaded,
+    login,
+    register,
+    logout,
+    updateProfile,
     addTransaction,
     editTransaction,
     deleteTransaction,

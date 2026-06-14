@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql, initDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 
 export async function GET() {
   if (!sql) {
@@ -8,10 +9,15 @@ export async function GET() {
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const rows = await sql`
       SELECT id, type, amount, category, date, note, account_id
       FROM transactions 
+      WHERE user_id = ${user.id}
       ORDER BY date DESC, created_at DESC
     `;
     
@@ -39,6 +45,11 @@ export async function POST(request: Request) {
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, type, amount, category, date, note, account_id } = body;
 
@@ -56,12 +67,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Amount must be a positive number.' }, { status: 400 });
     }
 
+    // Verify account ownership if account_id is supplied
+    if (account_id) {
+      const existingAccount = await sql`
+        SELECT id FROM accounts WHERE id = ${account_id} AND user_id = ${user.id}
+      `;
+      if (existingAccount.length === 0) {
+        return NextResponse.json({ error: 'Selected account not found or access denied.' }, { status: 400 });
+      }
+    }
+
     const txId = id || crypto.randomUUID();
 
     // 1. Insert transaction into Postgres
     await sql`
-      INSERT INTO transactions (id, type, amount, category, date, note, account_id)
-      VALUES (${txId}, ${type}, ${parsedAmount}, ${category}, ${date}, ${note || ''}, ${account_id || null})
+      INSERT INTO transactions (id, type, amount, category, date, note, account_id, user_id)
+      VALUES (${txId}, ${type}, ${parsedAmount}, ${category}, ${date}, ${note || ''}, ${account_id || null}, ${user.id})
     `;
 
     // 2. Adjust target account balance if account_id is provided
@@ -70,13 +91,13 @@ export async function POST(request: Request) {
         await sql`
           UPDATE accounts 
           SET balance = balance - ${parsedAmount}
-          WHERE id = ${account_id}
+          WHERE id = ${account_id} AND user_id = ${user.id}
         `;
       } else {
         await sql`
           UPDATE accounts 
           SET balance = balance + ${parsedAmount}
-          WHERE id = ${account_id}
+          WHERE id = ${account_id} AND user_id = ${user.id}
         `;
       }
     }

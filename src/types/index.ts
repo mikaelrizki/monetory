@@ -43,8 +43,15 @@ export const INCOME_CATEGORIES = [
 ];
 
 export const ACCOUNT_TYPES = [
-  { value: 'bank', label: 'Bank / Rekening' },
+  { value: 'bank', label: 'Bank' },
   { value: 'ewallet', label: 'E-Wallet' },
   { value: 'cash', label: 'Uang Tunai (Cash)' },
   { value: 'other', label: 'Lainnya' }
 ];
+
+export interface User {
+  id: string;
+  username: string;
+  name: string;
+}
+

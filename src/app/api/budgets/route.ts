@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql, initDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 
 export async function GET() {
   if (!sql) {
@@ -8,13 +9,17 @@ export async function GET() {
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const rows = await sql`
       SELECT category, limit_amount 
       FROM budgets
+      WHERE user_id = ${user.id}
     `;
 
-    // Map database fields to standard camelCase/format
     const budgets = rows.map(row => ({
       category: row.category,
       limit: parseFloat(row.limit_amount as string)
@@ -34,6 +39,11 @@ export async function POST(request: Request) {
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { category, limit } = body;
 
@@ -47,11 +57,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Limit must be a positive number.' }, { status: 400 });
     }
 
-    // Upsert budget limit
+    // Upsert budget limit scoped by user
     await sql`
-      INSERT INTO budgets (category, limit_amount)
-      VALUES (${category}, ${parsedLimit})
-      ON CONFLICT (category) 
+      INSERT INTO budgets (category, limit_amount, user_id)
+      VALUES (${category}, ${parsedLimit}, ${user.id})
+      ON CONFLICT (user_id, category) 
       DO UPDATE SET limit_amount = ${parsedLimit}
     `;
 

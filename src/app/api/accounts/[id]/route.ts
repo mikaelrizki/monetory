@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql, initDb } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 
 export async function PUT(
   request: Request,
@@ -11,6 +12,11 @@ export async function PUT(
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { name, type, balance } = body;
@@ -29,10 +35,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Balance must be a valid number.' }, { status: 400 });
     }
 
+    // Verify ownership
+    const existing = await sql`
+      SELECT id FROM accounts WHERE id = ${id} AND user_id = ${user.id}
+    `;
+    if (existing.length === 0) {
+      return NextResponse.json({ error: 'Account not found or access denied.' }, { status: 404 });
+    }
+
     await sql`
       UPDATE accounts
       SET name = ${name}, type = ${type}, balance = ${parsedBalance}
-      WHERE id = ${id}
+      WHERE id = ${id} AND user_id = ${user.id}
     `;
 
     return NextResponse.json({
@@ -57,19 +71,31 @@ export async function DELETE(
 
   try {
     await initDb();
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    // Optional: when deleting an account, set account_id to NULL in transactions 
-    // to preserve transaction history instead of cascade deletion.
+    // Verify ownership
+    const existing = await sql`
+      SELECT id FROM accounts WHERE id = ${id} AND user_id = ${user.id}
+    `;
+    if (existing.length === 0) {
+      return NextResponse.json({ error: 'Account not found or access denied.' }, { status: 404 });
+    }
+
+    // Set account_id to NULL in transactions belonging to this user
     await sql`
       UPDATE transactions
       SET account_id = NULL
-      WHERE account_id = ${id}
+      WHERE account_id = ${id} AND user_id = ${user.id}
     `;
 
     await sql`
       DELETE FROM accounts
-      WHERE id = ${id}
+      WHERE id = ${id} AND user_id = ${user.id}
     `;
 
     return NextResponse.json({ success: true, id });
