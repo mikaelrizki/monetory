@@ -1,0 +1,370 @@
+/* Custom variables */
+:root {
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  
+  --bg-color: #060913;
+  --bg-gradient: radial-gradient(circle at 10% 20%, #171032 0%, #060913 60%, #020308 100%);
+  
+  --card-bg: rgba(17, 24, 39, 0.45);
+  --card-bg-hover: rgba(17, 24, 39, 0.6);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  
+  --color-primary: #6366f1;
+  --color-primary-light: #818cf8;
+  --color-primary-glow: rgba(99, 102, 241, 0.12);
+  --color-secondary: #a855f7;
+  
+  --color-income: #10b981;
+  --color-income-bg: rgba(16, 185, 129, 0.08);
+  --color-income-border: rgba(16, 185, 129, 0.15);
+  
+  --color-expense: #f43f5e;
+  --color-expense-bg: rgba(244, 63, 94, 0.08);
+  --color-expense-border: rgba(244, 63, 94, 0.15);
+  
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.08);
+  --color-warning-border: rgba(245, 158, 11, 0.15);
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  
+  --glass-blur: 16px;
+  --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Form Validation colors */
+  --color-error: #f43f5e;
+  --color-error-light: rgba(244, 63, 94, 0.06);
+  --color-success: #10b981;
+  --color-success-light: rgba(16, 185, 129, 0.06);
+}
+
+/* Base resets & layouts */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  font-family: var(--font-sans);
+  background: var(--bg-color);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Modern standard scrollbar styling */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) rgba(0, 0, 0, 0.2);
+}
+
+/* Custom Scrollbar for Webkit browsers */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  transition: var(--transition-smooth);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Glassmorphic Utilities */
+.glass-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition-smooth);
+}
+.glass-panel:hover {
+  background: var(--card-bg-hover);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal backdrop filter */
+dialog::backdrop {
+  background-color: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Common UI helpers to replace Tailwind */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.flex {
+  display: flex;
+}
+.flex-col {
+  flex-direction: column;
+}
+.align-center {
+  align-items: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.justify-center {
+  justify-content: center;
+}
+.gap-1 {
+  gap: 0.25rem;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.gap-4 {
+  gap: 1rem;
+}
+.gap-6 {
+  gap: 1.5rem;
+}
+.flex-1 {
+  flex: 1 1 0%;
+}
+.grid {
+  display: grid;
+}
+
+/* Custom form elements */
+input, select, textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px var(--color-primary-glow);
+}
+
+/* Button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+  filter: brightness(1.1);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.btn-danger {
+  background: var(--color-expense-bg);
+  color: var(--color-expense);
+  border: 1px solid var(--color-expense-border);
+}
+.btn-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+/* Navigation tabs */
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+.tab-btn.active {
+  color: white;
+  background: var(--color-primary-glow);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 8px 8px 0;
+}
+
+/* Form Group validation styles using :has() and :user-invalid */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+}
+
+.error-msg {
+  display: none;
+  color: var(--color-error);
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Invalid state after interaction */
+.form-group:has(input:user-invalid, select:user-invalid, textarea:user-invalid) label {
+  color: var(--color-error);
+}
+
+.form-group input:user-invalid,
+.form-group select:user-invalid,
+.form-group textarea:user-invalid {
+  border-color: var(--color-error);
+  background-color: var(--color-error-light);
+}
+
+.form-group:has(input:user-invalid, select:user-invalid, textarea:user-invalid) .error-msg {
+  display: block;
+}
+
+/* Valid state */
+.form-group input:user-valid,
+.form-group select:user-valid,
+.form-group textarea:user-valid {
+  border-color: var(--color-success);
+}
+
+/* Dialog Specific Styles */
+dialog.transaction-modal {
+  border: none;
+  border-radius: 16px;
+  background: #0f131f;
+  background-image: radial-gradient(circle at top left, #1a1738 0%, #0f131f 100%);
+  color: var(--text-primary);
+  width: 90%;
+  max-width: 500px;
+  padding: 1.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin: auto;
+}
+
+dialog.transaction-modal::backdrop {
+  background-color: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+dialog.transaction-modal h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0px;
+}
+
+dialog.transaction-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.75rem;
+}
+
+dialog.transaction-modal .close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: var(--transition-smooth);
+}
+
+dialog.transaction-modal .close-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+}
+
+dialog.transaction-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 1rem;
+}
+
+
