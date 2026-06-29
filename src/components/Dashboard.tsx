@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Transaction, Budget, Account } from '../types';
 import { ArrowUpRight, ArrowDownRight, Wallet, AlertTriangle, Plus, ArrowRight } from 'lucide-react';
+import { getCycleRange, getTransactionsInCurrentCycle } from '../lib/dateUtils';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -14,6 +15,7 @@ interface DashboardProps {
   onAddTransactionClick: () => void;
   onNavigateToTab: (tab: string) => void;
   accounts: Account[];
+  user?: any;
 }
 
 export default function Dashboard({
@@ -25,7 +27,8 @@ export default function Dashboard({
   balance,
   onAddTransactionClick,
   onNavigateToTab,
-  accounts
+  accounts,
+  user
 }: DashboardProps) {
   const [balanceType, setBalanceType] = useState<'monthly' | 'total'>('monthly');
 
@@ -39,9 +42,10 @@ export default function Dashboard({
 
   const recentTxs = transactions.slice(0, 4);
 
-  // Compute current month cash flow
-  const currentMonth = new Date().toISOString().substring(0, 7); // "YYYY-MM"
-  const currentMonthTxs = transactions.filter(t => t.date.startsWith(currentMonth));
+  // Compute current month cash flow using payday cycle settings
+  const startDay = user?.summary_start_day || 1;
+  const cycleInfo = getCycleRange(startDay);
+  const currentMonthTxs = getTransactionsInCurrentCycle(transactions, startDay);
   const currentMonthIncome = currentMonthTxs
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -85,7 +89,22 @@ export default function Dashboard({
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Halo! Selamat Datang Kembali</h2>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Berikut adalah rangkuman catatan keuangan Anda hari ini.</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Berikut adalah rangkuman catatan keuangan Anda hari ini.
+            </span>
+            <span style={{
+              fontSize: '0.75rem',
+              background: 'rgba(99, 102, 241, 0.15)',
+              color: 'var(--color-primary-light)',
+              padding: '0.1rem 0.5rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              fontWeight: 600
+            }}>
+              Periode: {cycleInfo.label}
+            </span>
+          </div>
         </div>
         <button className="btn btn-primary" onClick={onAddTransactionClick}>
           <Plus size={16} /> Catat Transaksi

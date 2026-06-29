@@ -16,11 +16,12 @@ function SettingsView({
   onUpdateProfile
 }: {
   user: any;
-  onUpdateProfile: (name: string, password?: string) => Promise<{ success: boolean; error?: string }>
+  onUpdateProfile: (name: string, password?: string, summaryStartDay?: number) => Promise<{ success: boolean; error?: string }>
 }) {
   const [name, setName] = useState(user.name || user.username);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [summaryStartDay, setSummaryStartDay] = useState<number>(user.summary_start_day || 1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -47,7 +48,7 @@ function SettingsView({
     }
 
     setSubmitting(true);
-    const res = await onUpdateProfile(name.trim(), password || undefined);
+    const res = await onUpdateProfile(name.trim(), password || undefined, summaryStartDay);
     setSubmitting(false);
 
     if (res.success) {
@@ -101,6 +102,25 @@ function SettingsView({
             required
             disabled={submitting}
           />
+        </div>
+
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label htmlFor="summaryStartDay">Tanggal Awal Ringkasan (Gajian) *</label>
+          <select
+            id="summaryStartDay"
+            value={summaryStartDay}
+            onChange={(e) => setSummaryStartDay(parseInt(e.target.value, 10))}
+            disabled={submitting}
+          >
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+              <option key={day} value={day}>
+                Tanggal {day}
+              </option>
+            ))}
+          </select>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'block' }}>
+            Menentukan tanggal dimulainya perhitungan ringkasan bulanan dan anggaran Anda.
+          </span>
         </div>
 
         <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', margin: '0.5rem 0' }} />
@@ -396,6 +416,7 @@ export default function Home() {
             onAddTransactionClick={handleOpenAddModal}
             onNavigateToTab={(tab) => setActiveTab(tab)}
             accounts={accounts}
+            user={user}
           />
         );
       case 'transactions':

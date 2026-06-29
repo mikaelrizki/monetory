@@ -16,9 +16,9 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { name, password } = body;
+    const { name, password, summary_start_day } = body;
 
-    if (!name && !password) {
+    if (!name && !password && summary_start_day === undefined) {
       return NextResponse.json({ error: 'No fields to update provided.' }, { status: 400 });
     }
 
@@ -49,11 +49,30 @@ export async function PUT(request: Request) {
       `;
     }
 
+    if (summary_start_day !== undefined) {
+      const startDay = parseInt(summary_start_day, 10);
+      if (isNaN(startDay) || startDay < 1 || startDay > 31) {
+        return NextResponse.json({ error: 'Tanggal awal harus antara 1 dan 31.' }, { status: 400 });
+      }
+      await sql`
+        UPDATE users 
+        SET summary_start_day = ${startDay} 
+        WHERE id = ${currentUser.id}
+      `;
+    }
+
+    // Fetch updated user from DB
+    const users = await sql`
+      SELECT id, username, name, summary_start_day FROM users 
+      WHERE id = ${currentUser.id}
+    `;
+    const updatedUser = users[0];
+
     // Generate updated token
     const token = signToken({
-      id: currentUser.id,
-      username: currentUser.username,
-      name: updatedName
+      id: updatedUser.id,
+      username: updatedUser.username,
+      name: updatedUser.name || updatedUser.username
     });
 
     const cookieStore = await cookies();
@@ -65,11 +84,7 @@ export async function PUT(request: Request) {
       path: '/'
     });
 
-    return NextResponse.json({
-      id: currentUser.id,
-      username: currentUser.username,
-      name: updatedName
-    });
+    return NextResponse.json(updatedUser);
   } catch (error: any) {
     console.error('API Error (PUT /api/auth/update-profile):', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });

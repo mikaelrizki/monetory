@@ -46,6 +46,9 @@ export async function initDb() {
     await sql`
       UPDATE users SET name = username WHERE name IS NULL
     `;
+    await sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS summary_start_day INTEGER DEFAULT 1
+    `;
 
     // 1. Create accounts table
     await sql`

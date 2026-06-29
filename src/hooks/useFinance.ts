@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { Transaction, Budget, Account, User } from '../types';
+import { getTransactionsInCurrentCycle } from '../lib/dateUtils';
 
 const INITIAL_ACCOUNTS = [
   {
@@ -283,13 +284,13 @@ export function useFinance() {
     }
   };
 
-  const updateProfile = async (name: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+  const updateProfile = async (name: string, password?: string, summaryStartDay?: number): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoaded(false);
       const res = await fetch('/api/auth/update-profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, password })
+        body: JSON.stringify({ name, password, summary_start_day: summaryStartDay })
       });
 
       const data = await res.json();
@@ -567,17 +568,19 @@ export function useFinance() {
     }
   };
 
-  const totalIncome = transactions
+  const cycleTransactions = getTransactionsInCurrentCycle(transactions, user?.summary_start_day || 1);
+
+  const totalIncome = cycleTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpense = transactions
+  const totalExpense = cycleTransactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const balance = totalIncome - totalExpense;
 
-  const categorySpend = transactions
+  const categorySpend = cycleTransactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
